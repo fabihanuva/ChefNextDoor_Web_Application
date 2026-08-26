@@ -1,14 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { formatCurrency } from '@/lib/utils'
+import { calculatePlatformFee, PLATFORM_FEE_PERCENT } from '@/lib/platformFee'
 
 /**
- * NOTE: tbl_order only persists ord_total_amount (the combined total) —
- * subtotal and delivery fee were never stored as separate columns (see
- * Phase 7's placeOrder action). That means a real GMV-vs-delivery-fees
- * split isn't possible from existing data. This page shows total order
- * value only. If an accurate fee breakdown becomes a requirement, add a
- * persisted ord_delivery_fee column and start writing to it at checkout —
- * it just won't be retroactive for orders already placed.
+ * NOTE: tbl_order only persists ord_total_amount (the combined order
+ * total) — delivery fee was never stored as a separate column (see
+ * Phase 7's placeOrder action). Platform revenue below is computed as
+ * PLATFORM_FEE_PERCENT of that total, not a separately-tracked figure.
  */
 export default async function AdminRevenuePage() {
   const supabase = createAdminClient()
@@ -18,8 +16,9 @@ export default async function AdminRevenuePage() {
     .eq('ord_status', 'delivered')
     .order('ord_order_date', { ascending: false })
 
-  const totalRevenue =
-    orders?.reduce((sum, o) => sum + Number(o.ord_total_amount ?? 0), 0) ?? 0
+  const gmv = orders?.reduce((sum, o) => sum + Number(o.ord_total_amount ?? 0), 0) ?? 0
+  const platformRevenue = calculatePlatformFee(gmv)
+  const chefPayouts = gmv - platformRevenue
 
   const byMonth = new Map<string, number>()
   orders?.forEach((o) => {
@@ -34,23 +33,36 @@ export default async function AdminRevenuePage() {
     <div>
       <h1 className="font-display text-2xl text-gray-900 mb-2">Revenue</h1>
       <p className="text-sm text-gray-500 mb-6">
-        Total order value from delivered orders. Delivery fees aren&apos;t tracked as a
-        separate figure yet.
+        Platform revenue is {(PLATFORM_FEE_PERCENT * 100).toFixed(0)}% of order value from
+        delivered orders. Delivery fees aren&apos;t tracked as a separate figure yet.
       </p>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm mb-8 max-w-sm">
-        <p className="text-sm text-gray-500">Total order value (delivered)</p>
-        <p className="font-display text-2xl text-gray-900 mt-1">
-          {formatCurrency(totalRevenue)}
-        </p>
+      <div className="grid sm:grid-cols-3 gap-4 mb-8 max-w-2xl">
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Total order value (GMV)</p>
+          <p className="font-display text-xl text-gray-900 mt-1">{formatCurrency(gmv)}</p>
+        </div>
+        <div className="bg-brand-green rounded-xl p-5 shadow-sm">
+          <p className="text-sm text-white/80">Platform revenue</p>
+          <p className="font-display text-xl text-white mt-1">{formatCurrency(platformRevenue)}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Paid out to chefs</p>
+          <p className="font-display text-xl text-gray-900 mt-1">{formatCurrency(chefPayouts)}</p>
+        </div>
       </div>
 
-      <h2 className="font-display text-lg text-gray-900 mb-3">By month</h2>
+      <h2 className="font-display text-lg text-gray-900 mb-3">Order value by month</h2>
       <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-100">
         {Array.from(byMonth.entries()).map(([month, total]) => (
           <div key={month} className="flex items-center justify-between px-4 py-3">
             <span className="text-sm text-gray-600">{month}</span>
-            <span className="font-mono text-sm text-gray-900">{formatCurrency(total)}</span>
+            <div className="text-right">
+              <span className="font-mono text-sm text-gray-900">{formatCurrency(total)}</span>
+              <span className="font-mono text-xs text-gray-400 ml-3">
+                ({formatCurrency(calculatePlatformFee(total))} platform)
+              </span>
+            </div>
           </div>
         ))}
         {byMonth.size === 0 && (

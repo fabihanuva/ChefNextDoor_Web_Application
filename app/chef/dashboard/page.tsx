@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/shared/Button'
+import { ChefDishCard } from '@/components/chef/ChefDishCard'
 import { formatCurrency } from '@/lib/utils'
 import { getChefId, getChefOrderIds } from '@/lib/actions/chef-helpers'
+import { calculateChefEarnings } from '@/lib/platformFee'
+import type { Dish } from '@/lib/types'
 
 export default async function ChefDashboardPage() {
   const supabase = await createClient()
@@ -21,7 +24,7 @@ export default async function ChefDashboardPage() {
   const chefId = profile?.chf_id ?? null
   const orderIds = chefId ? await getChefOrderIds(supabase, chefId) : []
 
-  const [{ count: dishCount }, { count: activeOrderCount }, { data: deliveredOrders }] =
+  const [{ count: dishCount }, { count: activeOrderCount }, { data: deliveredOrders }, { data: dishes }] =
     await Promise.all([
       chefId
         ? supabase.from('tbl_dish').select('*', { count: 'exact', head: true }).eq('dsh_chef_id', chefId)
@@ -40,15 +43,24 @@ export default async function ChefDashboardPage() {
             .in('ord_id', orderIds)
             .eq('ord_status', 'delivered')
         : Promise.resolve({ data: [] }),
+      chefId
+        ? supabase
+            .from('tbl_dish')
+            .select('*')
+            .eq('dsh_chef_id', chefId)
+            .order('dsh_name')
+            .returns<Dish[]>()
+        : Promise.resolve({ data: [] as Dish[] }),
     ])
 
-  const totalEarnings =
+  const grossTotal =
     deliveredOrders?.reduce((sum, o) => sum + Number(o.ord_total_amount ?? 0), 0) ?? 0
+  const netEarnings = calculateChefEarnings(grossTotal)
 
   const stats = [
     { label: 'Dishes listed', value: dishCount ?? 0 },
     { label: 'Active orders', value: activeOrderCount ?? 0 },
-    { label: 'Total earnings', value: formatCurrency(totalEarnings) },
+    { label: 'Your earnings', value: formatCurrency(netEarnings) },
     {
       label: 'Rating',
       value: profile?.chf_rating_avg ? Number(profile.chf_rating_avg).toFixed(1) : '—',
@@ -84,6 +96,33 @@ export default async function ChefDashboardPage() {
         <Link href="/chef/orders">
           <Button variant="ghost">View orders</Button>
         </Link>
+        <Link href="/chef/profile">
+          <Button variant="ghost">Edit profile</Button>
+        </Link>
+      </div>
+
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl text-gray-900">Your dishes</h2>
+          <Link href="/chef/dishes" className="text-sm text-brand-green hover:underline">
+            Manage all
+          </Link>
+        </div>
+
+        {dishes && dishes.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {dishes.map((dish) => (
+              <ChefDishCard key={dish.dsh_id} dish={dish} />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+            <p className="text-gray-500 mb-4">You haven&apos;t added any dishes yet.</p>
+            <Link href="/chef/dishes/new">
+              <Button>Add your first dish</Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )

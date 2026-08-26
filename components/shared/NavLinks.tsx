@@ -28,6 +28,8 @@ export function NavLinks({
           { href: '/chef/dashboard', label: 'Dashboard' },
           { href: '/chef/dishes', label: 'My dishes' },
           { href: '/chef/orders', label: 'Orders' },
+          { href: '/chef/earnings', label: 'Earnings' },
+          { href: '/chef/profile', label: 'Profile' },
         ]
       : [
           { href: '/browse', label: 'Browse' },
