@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 import { Button } from '@/components/shared/Button'
@@ -42,8 +43,18 @@ export default function LandingPage() {
 
       <main>
         {/* Hero */}
-        <section className="max-w-6xl mx-auto px-4 pt-16 pb-20 grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+        <section className="relative max-w-6xl mx-auto px-4 pt-16 pb-20 grid lg:grid-cols-2 gap-12 items-center overflow-hidden">
+          {/* Logo watermark — subtle, sits behind everything */}
+          <Image
+            src="/logo.jpeg"
+            alt=""
+            width={700}
+            height={700}
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute -top-24 -right-32 opacity-[0.06] z-0"
+          />
+
+          <div className="relative z-10">
             <p className="font-mono text-xs tracking-widest text-brand-green uppercase mb-4">
               Now cooking in your neighborhood
             </p>
