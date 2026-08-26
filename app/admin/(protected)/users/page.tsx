@@ -1,0 +1,40 @@
+import { createAdminClient } from '@/lib/supabase/admin'
+import { UserRow } from '@/components/admin/UserRow'
+
+type CustomerRow = {
+  cs_id: number
+  tbl_users: {
+    usr_id: string
+    usr_full_name: string
+    usr_email: string
+    usr_is_active: boolean
+  } | null
+}
+
+export default async function AdminUsersPage() {
+  const supabase = createAdminClient()
+
+  // There's no role column on tbl_users — a "customer" is defined by
+  // having a row in tbl_customer, so we join through that instead.
+  const { data: customers } = await supabase
+    .from('tbl_customer')
+    .select('cs_id, tbl_users(usr_id, usr_full_name, usr_email, usr_is_active)')
+    .returns<CustomerRow[]>()
+
+  const users = (customers ?? [])
+    .filter((c) => c.tbl_users)
+    .map((c) => c.tbl_users!)
+    .sort((a, b) => a.usr_full_name.localeCompare(b.usr_full_name))
+
+  return (
+    <div>
+      <h1 className="font-display text-2xl text-gray-900 mb-6">Customers</h1>
+      <div className="space-y-3">
+        {users.map((u) => (
+          <UserRow key={u.usr_id} user={u} />
+        ))}
+        {users.length === 0 && <p className="text-gray-500">No customers yet.</p>}
+      </div>
+    </div>
+  )
+}
