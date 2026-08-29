@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useTransition } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/shared/Badge'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { deleteDish, toggleDishAvailability } from '@/lib/actions/dish'
 import { formatCurrency } from '@/lib/utils'
 import type { Dish } from '@/lib/types'
@@ -14,9 +15,13 @@ export function DishTable({ dishes }: { dishes: Dish[] }) {
 
   if (dishes.length === 0) {
     return (
-      <p className="text-gray-500 text-center py-16">
-        You haven&apos;t added any dishes yet.
-      </p>
+      <EmptyState
+        emoji="🍳"
+        title="No dishes yet"
+        message="Add your first dish so customers can find your kitchen."
+        actionLabel="Add a dish"
+        actionHref="/chef/dishes/new"
+      />
     )
   }
 

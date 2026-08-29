@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCustomerId } from '@/lib/actions/customer-helpers'
 import { formatCurrency } from '@/lib/utils'
 import { FavoriteButton } from '@/components/customer/FavoriteButton'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 type FavoriteRow = {
   fav_dish_id: number
@@ -92,12 +93,17 @@ export default async function FavoritesPage() {
             </div>
           )
         })}
-        {dishes.length === 0 && (
-          <p className="text-gray-500 col-span-full text-center py-12">
-            You haven&apos;t favorited any dishes yet.
-          </p>
-        )}
       </div>
+
+      {dishes.length === 0 && (
+        <EmptyState
+          emoji="🤍"
+          title="No favorites yet"
+          message="Tap the heart on any dish to save it here for next time."
+          actionLabel="Browse chefs"
+          actionHref="/browse"
+        />
+      )}
     </div>
   )
 }

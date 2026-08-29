@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { OrderQueueItem } from '@/components/chef/OrderQueueItem'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { getChefId, getChefOrderIds } from '@/lib/actions/chef-helpers'
 
 export default async function ChefOrdersPage() {
@@ -31,7 +32,11 @@ export default async function ChefOrdersPage() {
           <OrderQueueItem key={order.ord_id} order={order} />
         ))}
         {orders?.length === 0 && (
-          <p className="text-gray-500 text-center py-16">No active orders right now.</p>
+          <EmptyState
+            emoji="📭"
+            title="No active orders"
+            message="New orders will show up here the moment a customer checks out."
+          />
         )}
       </div>
     </div>

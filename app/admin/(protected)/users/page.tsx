@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { UserRow } from '@/components/admin/UserRow'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 type CustomerRow = {
   cs_id: number
@@ -14,8 +15,6 @@ type CustomerRow = {
 export default async function AdminUsersPage() {
   const supabase = createAdminClient()
 
-  // There's no role column on tbl_users — a "customer" is defined by
-  // having a row in tbl_customer, so we join through that instead.
   const { data: customers } = await supabase
     .from('tbl_customer')
     .select('cs_id, tbl_users(usr_id, usr_full_name, usr_email, usr_is_active)')
@@ -33,7 +32,9 @@ export default async function AdminUsersPage() {
         {users.map((u) => (
           <UserRow key={u.usr_id} user={u} />
         ))}
-        {users.length === 0 && <p className="text-gray-500">No customers yet.</p>}
+        {users.length === 0 && (
+          <EmptyState emoji="🧍" title="No customers yet" message="Customer signups will appear here." />
+        )}
       </div>
     </div>
   )

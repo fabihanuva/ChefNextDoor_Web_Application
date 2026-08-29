@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Button } from '@/components/shared/Button'
 import { DeliveryPartnerRow } from '@/components/admin/DeliveryPartnerRow'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 export default async function AdminDeliveryPartnersPage() {
   const supabase = createAdminClient()
@@ -23,7 +24,15 @@ export default async function AdminDeliveryPartnersPage() {
         {partners?.map((p) => (
           <DeliveryPartnerRow key={p.dp_id} partner={p} />
         ))}
-        {partners?.length === 0 && <p className="text-gray-500">No delivery partners yet.</p>}
+        {partners?.length === 0 && (
+          <EmptyState
+            emoji="🛵"
+            title="No delivery partners yet"
+            message="Add your first delivery partner to start assigning deliveries."
+            actionLabel="Add partner"
+            actionHref="/admin/delivery-partners/new"
+          />
+        )}
       </div>
     </div>
   )

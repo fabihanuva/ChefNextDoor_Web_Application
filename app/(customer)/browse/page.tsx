@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { ChefCard } from '@/components/customer/ChefCard'
 import { SearchBar } from '@/components/customer/SearchBar'
+import { EmptyState } from '@/components/shared/EmptyState'
 import type { Chef } from '@/lib/types'
 
 export default async function BrowsePage({
@@ -41,12 +42,19 @@ export default async function BrowsePage({
         {chefs?.map((chef) => (
           <ChefCard key={chef.chf_id} chef={chef} />
         ))}
-        {chefs?.length === 0 && (
-          <p className="text-gray-500 col-span-full text-center py-12">
-            No chefs match your search yet.
-          </p>
-        )}
       </div>
+
+      {chefs?.length === 0 && (
+        <EmptyState
+          emoji={q ? '🔍' : '👩‍🍳'}
+          title={q ? 'No chefs match your search' : 'No chefs here yet'}
+          message={
+            q
+              ? 'Try a different cuisine or clear your search to see everyone.'
+              : "We're onboarding chefs in your area — check back soon."
+          }
+        />
+      )}
     </div>
   )
 }

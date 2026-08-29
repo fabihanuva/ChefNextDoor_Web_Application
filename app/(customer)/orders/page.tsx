@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { OrderStatusBadge } from '@/components/shared/Badge'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { getCustomerId } from '@/lib/actions/customer-helpers'
 import { formatCurrency } from '@/lib/utils'
 
@@ -43,9 +44,13 @@ export default async function OrdersPage() {
           </Link>
         ))}
         {orders?.length === 0 && (
-          <p className="text-gray-500 text-center py-12">
-            You haven&apos;t placed any orders yet.
-          </p>
+          <EmptyState
+            emoji="🧾"
+            title="No orders yet"
+            message="Once you place an order, you'll be able to track it here."
+            actionLabel="Browse chefs"
+            actionHref="/browse"
+          />
         )}
       </div>
     </div>
