@@ -190,30 +190,30 @@ export default async function LandingPage() {
           </Reveal>
 
           {/* Signature element: tilted order-ticket collage, real dish photos when available */}
-          <div className="relative z-10 grid grid-cols-2 gap-4 sm:gap-5">
+          <div className="relative z-10 grid grid-cols-2 gap-5 sm:gap-6">
             {hasFeaturedDishes
               ? dishes!.map((dish, i) => (
                   <Reveal key={dish.dsh_id} delay={i * 120}>
                     <div
-                      className={`bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden ${ROTATIONS[i]} hover:rotate-0 hover:scale-105 hover:shadow-lg hover:z-10 transition-transform duration-200`}
+                      className={`group bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden ${ROTATIONS[i]} hover:rotate-0 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 ease-out`}
                     >
-                      <div className="relative h-28 sm:h-32 w-full bg-brand-cream">
+                      <div className="relative h-40 sm:h-48 w-full bg-brand-cream overflow-hidden">
                         <Image
                           src={dish.dsh_image_url!}
                           alt={dish.dsh_name}
                           fill
-                          className="object-cover"
-                          sizes="200px"
+                          className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                          sizes="260px"
                         />
                       </div>
-                      <div className="p-3">
-                        <p className="font-display text-sm text-gray-900 leading-tight truncate">
+                      <div className="p-4">
+                        <p className="font-display text-base text-gray-900 leading-tight truncate">
                           {dish.dsh_name}
                         </p>
                         <p className="text-xs text-gray-500 mt-1 truncate">
                           by {dish.tbl_chef_profile?.tbl_users?.usr_full_name ?? 'a local chef'}
                         </p>
-                        <p className="font-mono text-sm text-brand-green mt-1">
+                        <p className="font-mono text-sm text-brand-green mt-1.5">
                           {formatCurrency(Number(dish.dsh_price))}
                         </p>
                       </div>
@@ -223,10 +223,10 @@ export default async function LandingPage() {
               : ['🍛', '🥟', '🍲', '🍚'].map((emoji, i) => (
                   <Reveal key={emoji} delay={i * 120}>
                     <div
-                      className={`bg-white border border-gray-200 rounded-lg shadow-md p-4 h-28 sm:h-32 flex flex-col items-center justify-center ${ROTATIONS[i]} hover:rotate-0 hover:scale-105 hover:shadow-lg hover:z-10 transition-transform duration-200`}
+                      className={`bg-white border border-gray-200 rounded-xl shadow-md p-4 h-40 sm:h-48 flex flex-col items-center justify-center ${ROTATIONS[i]} hover:rotate-0 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 ease-out`}
                     >
-                      <span className="text-2xl">{emoji}</span>
-                      <p className="font-display text-sm text-gray-400 mt-2">Coming soon</p>
+                      <span className="text-4xl">{emoji}</span>
+                      <p className="font-display text-sm text-gray-400 mt-3">Coming soon</p>
                     </div>
                   </Reveal>
                 ))}

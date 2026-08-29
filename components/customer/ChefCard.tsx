@@ -10,11 +10,16 @@ export function ChefCard({ chef }: { chef: Chef }) {
   return (
     <Link
       href={`/chefs/${chef.chf_id}`}
-      className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:-rotate-1 hover:scale-[1.02] transition-transform duration-200"
+      className="group block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-out"
     >
-      <div className="relative h-40 bg-brand-cream">
+      <div className="relative h-44 bg-brand-cream overflow-hidden">
         {avatar ? (
-          <Image src={avatar} alt={name} fill className="object-cover" />
+          <Image
+            src={avatar}
+            alt={name}
+            fill
+            className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+          />
         ) : (
           <div className="h-full flex items-center justify-center text-brand-green/40 font-display text-4xl">
             {name.charAt(0)}
