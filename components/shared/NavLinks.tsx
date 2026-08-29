@@ -36,6 +36,7 @@ export function NavLinks({
           { href: '/orders', label: 'My orders' },
           { href: '/favorites', label: 'Favorites' },
           { href: '/cart', label: 'Cart' },
+          { href: '/profile', label: 'Profile' },
         ]
 
   return (

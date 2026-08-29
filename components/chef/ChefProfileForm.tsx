@@ -22,19 +22,34 @@ export function ChefProfileForm({
     undefined
   )
   const [preview, setPreview] = useState<string | null>(avatarUrl)
+  const [removeAvatar, setRemoveAvatar] = useState(false)
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) setPreview(URL.createObjectURL(file))
+    if (file) {
+      setPreview(URL.createObjectURL(file))
+      setRemoveAvatar(false) // picking a new file overrides a pending removal
+    }
+  }
+
+  function handleRemoveClick() {
+    setPreview(null)
+    setRemoveAvatar(true)
   }
 
   return (
     <form action={formAction} className="space-y-4">
+      <input type="hidden" name="removeAvatar" value={removeAvatar ? 'true' : 'false'} />
+
       <div className="flex items-center gap-4">
-        <div className="w-20 h-20 rounded-full bg-brand-cream overflow-hidden shrink-0">
-          {preview && (
+        <div className="w-20 h-20 rounded-full bg-brand-cream overflow-hidden shrink-0 flex items-center justify-center">
+          {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="Avatar preview" className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-display text-2xl text-brand-green">
+              {fullName.charAt(0) || '?'}
+            </span>
           )}
         </div>
         <div>
@@ -46,6 +61,18 @@ export function ChefProfileForm({
             onChange={handleFileChange}
             className="block text-sm mt-1"
           />
+          {preview && (
+            <button
+              type="button"
+              onClick={handleRemoveClick}
+              className="text-xs text-red-600 hover:underline mt-1"
+            >
+              Remove photo
+            </button>
+          )}
+          {!preview && removeAvatar && (
+            <p className="text-xs text-gray-500 mt-1">Photo will be removed on save.</p>
+          )}
         </div>
       </div>
 

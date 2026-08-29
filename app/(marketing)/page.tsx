@@ -4,13 +4,14 @@ import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 import { Button } from '@/components/shared/Button'
 import { StarRating } from '@/components/shared/StarRating'
+import { Reveal } from '@/components/shared/Reveal'
+import { PersonalizedHome } from '@/components/shared/PersonalizedHome'
+import { createClient } from '@/lib/supabase/server'
+import { getCustomerId } from '@/lib/actions/customer-helpers'
+import { getChefId, getChefOrderIds } from '@/lib/actions/chef-helpers'
+import { formatCurrency } from '@/lib/utils'
 
-const TICKETS = [
-  { emoji: '🍛', dish: 'Beef Bhuna', cook: 'Rina', price: '৳320', rotate: '-rotate-3' },
-  { emoji: '🥟', dish: 'Steamed Momo', cook: 'Tenzin', price: '৳180', rotate: 'rotate-2' },
-  { emoji: '🍲', dish: 'Chingri Malai', cook: 'Nasrin', price: '৳450', rotate: '-rotate-1' },
-  { emoji: '🍚', dish: 'Kacchi Biryani', cook: 'Shafiq', price: '৳380', rotate: 'rotate-3' },
-]
+const ROTATIONS = ['-rotate-2', 'rotate-2', 'rotate-1', '-rotate-1']
 
 const STEPS = [
   {
@@ -30,13 +31,116 @@ const STEPS = [
   },
 ]
 
-const REVIEWS = [
-  { name: 'Amara K.', quote: 'Tastes just like home. Ordering weekly now.', rating: 5, dish: 'Beef Bhuna' },
-  { name: 'Rafi H.', quote: 'Found my favorite biryani cook through this app.', rating: 4.5, dish: 'Kacchi Biryani' },
-  { name: 'Priya S.', quote: 'Delivery was fast and the food was still warm.', rating: 5, dish: 'Chingri Malai' },
-]
+type FeaturedDish = {
+  dsh_id: number
+  dsh_name: string
+  dsh_price: number | string
+  dsh_image_url: string | null
+  tbl_chef_profile: { tbl_users: { usr_full_name: string } | null } | null
+}
 
-export default function LandingPage() {
+type FeaturedReview = {
+  rv_rating: number
+  rv_comment: string | null
+  tbl_customer: { tbl_users: { usr_full_name: string } | null } | null
+  tbl_order: {
+    tbl_order_items: { tbl_dish: { dsh_name: string } | null }[] | null
+  } | null
+}
+
+export default async function LandingPage() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Logged-in users get a personalized home instead of the public
+  // marketing page — different job (get a returning user back into their
+  // flow) from the public page's job (convince a stranger to sign up).
+  if (user) {
+    const role = user.user_metadata?.role as 'customer' | 'chef' | undefined
+    const { data: profile } = await supabase
+      .from('tbl_users')
+      .select('usr_full_name')
+      .eq('usr_id', user.id)
+      .single()
+    const name = profile?.usr_full_name ?? 'there'
+
+    if (role === 'chef') {
+      const chefId = await getChefId(supabase, user.id)
+      const { data: chefProfile } = await supabase
+        .from('tbl_chef_profile')
+        .select('chf_verification_status')
+        .eq('chf_user_id', user.id)
+        .single()
+
+      let pendingOrderCount = 0
+      if (chefId) {
+        const orderIds = await getChefOrderIds(supabase, chefId)
+        if (orderIds.length) {
+          const { count } = await supabase
+            .from('tbl_order')
+            .select('*', { count: 'exact', head: true })
+            .in('ord_id', orderIds)
+            .not('ord_status', 'in', '("delivered","cancelled")')
+          pendingOrderCount = count ?? 0
+        }
+      }
+
+      return (
+        <PersonalizedHome
+          data={{
+            role: 'chef',
+            name,
+            pendingOrderCount,
+            isVerified: chefProfile?.chf_verification_status === 'verified',
+          }}
+        />
+      )
+    }
+
+    const customerId = await getCustomerId(supabase, user.id)
+    let activeOrder = null
+    if (customerId) {
+      const { data } = await supabase
+        .from('tbl_order')
+        .select('ord_id, ord_status, ord_total_amount')
+        .eq('ord_customer_id', customerId)
+        .not('ord_status', 'in', '("delivered","cancelled")')
+        .order('ord_order_date', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      activeOrder = data
+    }
+
+    return <PersonalizedHome data={{ role: 'customer', name, activeOrder }} />
+  }
+
+  // Real dishes with real uploaded photos, from verified chefs only —
+  // no fallback to unverified/pending chefs' dishes on the public landing page
+  const { data: dishes } = await supabase
+    .from('tbl_dish')
+    .select('dsh_id, dsh_name, dsh_price, dsh_image_url, tbl_chef_profile!inner(tbl_users(usr_full_name), chf_verification_status)')
+    .eq('dsh_is_available', true)
+    .eq('tbl_chef_profile.chf_verification_status', 'verified')
+    .not('dsh_image_url', 'is', null)
+    .limit(4)
+    .returns<FeaturedDish[]>()
+
+  const { data: reviews } = await supabase
+    .from('tbl_review')
+    .select(
+      'rv_rating, rv_comment, tbl_customer(tbl_users(usr_full_name)), tbl_order:rv_order_id(tbl_order_items(tbl_dish(dsh_name)))'
+    )
+    .not('rv_comment', 'is', null)
+    .order('rv_created_at', { ascending: false })
+    .limit(3)
+    .returns<FeaturedReview[]>()
+
+  const hasFeaturedDishes = dishes && dishes.length > 0
+  const hasReviews = reviews && reviews.length > 0
+
   return (
     <>
       <Navbar />
@@ -44,6 +148,10 @@ export default function LandingPage() {
       <main>
         {/* Hero */}
         <section className="relative max-w-6xl mx-auto px-4 pt-16 pb-20 grid lg:grid-cols-2 gap-12 items-center overflow-hidden">
+          {/* Decorative gradient blobs — slow, subtle, brand-colored */}
+          <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 bg-brand-gold rounded-full blur-3xl animate-pulse-slow" />
+          <div className="pointer-events-none absolute top-1/3 -right-16 w-80 h-80 bg-brand-green rounded-full blur-3xl animate-pulse-slow" />
+
           {/* Logo watermark — subtle, sits behind everything */}
           <Image
             src="/logo.jpeg"
@@ -51,10 +159,10 @@ export default function LandingPage() {
             width={700}
             height={700}
             aria-hidden="true"
-            className="pointer-events-none select-none absolute -top-24 -right-32 opacity-[0.06] z-0"
+            className="pointer-events-none select-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.06] z-0"
           />
 
-          <div className="relative z-10">
+          <Reveal className="relative z-10">
             <p className="font-mono text-xs tracking-widest text-brand-green uppercase mb-4">
               Now cooking in your neighborhood
             </p>
@@ -79,89 +187,124 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </div>
-          </div>
+          </Reveal>
 
-          {/* Signature element: tilted order-ticket collage */}
-          <div className="relative h-80 sm:h-96">
-            {TICKETS.map((t, i) => (
-              <div
-                key={t.dish}
-                className={`absolute bg-white border border-gray-200 rounded-lg shadow-md p-4 w-44 ${t.rotate} hover:rotate-0 hover:scale-105 transition-transform duration-200`}
-                style={{
-                  top: `${[8, 0, 42, 48][i]}%`,
-                  left: `${[2, 50, 0, 52][i]}%`,
-                }}
-              >
-                <span className="text-2xl">{t.emoji}</span>
-                <p className="font-display text-base text-gray-900 mt-2 leading-tight">
-                  {t.dish}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">by {t.cook}</p>
-                <p className="font-mono text-sm text-brand-green mt-2">{t.price}</p>
-              </div>
-            ))}
+          {/* Signature element: tilted order-ticket collage, real dish photos when available */}
+          <div className="relative z-10 grid grid-cols-2 gap-4 sm:gap-5">
+            {hasFeaturedDishes
+              ? dishes!.map((dish, i) => (
+                  <Reveal key={dish.dsh_id} delay={i * 120}>
+                    <div
+                      className={`bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden ${ROTATIONS[i]} hover:rotate-0 hover:scale-105 hover:shadow-lg hover:z-10 transition-transform duration-200`}
+                    >
+                      <div className="relative h-28 sm:h-32 w-full bg-brand-cream">
+                        <Image
+                          src={dish.dsh_image_url!}
+                          alt={dish.dsh_name}
+                          fill
+                          className="object-cover"
+                          sizes="200px"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <p className="font-display text-sm text-gray-900 leading-tight truncate">
+                          {dish.dsh_name}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1 truncate">
+                          by {dish.tbl_chef_profile?.tbl_users?.usr_full_name ?? 'a local chef'}
+                        </p>
+                        <p className="font-mono text-sm text-brand-green mt-1">
+                          {formatCurrency(Number(dish.dsh_price))}
+                        </p>
+                      </div>
+                    </div>
+                  </Reveal>
+                ))
+              : ['🍛', '🥟', '🍲', '🍚'].map((emoji, i) => (
+                  <Reveal key={emoji} delay={i * 120}>
+                    <div
+                      className={`bg-white border border-gray-200 rounded-lg shadow-md p-4 h-28 sm:h-32 flex flex-col items-center justify-center ${ROTATIONS[i]} hover:rotate-0 hover:scale-105 hover:shadow-lg hover:z-10 transition-transform duration-200`}
+                    >
+                      <span className="text-2xl">{emoji}</span>
+                      <p className="font-display text-sm text-gray-400 mt-2">Coming soon</p>
+                    </div>
+                  </Reveal>
+                ))}
           </div>
         </section>
 
         {/* How it works — a real sequence, so numbering earns its place */}
         <section className="bg-white border-y border-gray-100">
           <div className="max-w-6xl mx-auto px-4 py-16">
-            <h2 className="font-display text-2xl text-gray-900 mb-10">
-              From their stove to your door
-            </h2>
+            <Reveal>
+              <h2 className="font-display text-2xl text-gray-900 mb-10">
+                From their stove to your door
+              </h2>
+            </Reveal>
             <div className="grid sm:grid-cols-3 gap-10">
-              {STEPS.map((s) => (
-                <div key={s.n}>
+              {STEPS.map((s, i) => (
+                <Reveal key={s.n} delay={i * 150}>
                   <span className="font-mono text-sm text-brand-gold">{s.n}</span>
                   <h3 className="font-display text-lg text-gray-900 mt-2">{s.title}</h3>
                   <p className="text-sm text-gray-600 mt-2">{s.body}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Reviews, styled as the same ticket language as the hero */}
-        <section className="max-w-6xl mx-auto px-4 py-16">
-          <h2 className="font-display text-2xl text-gray-900 mb-8">
-            What the neighborhood's saying
-          </h2>
-          <div className="grid sm:grid-cols-3 gap-6">
-            {REVIEWS.map((r) => (
-              <div
-                key={r.name}
-                className="bg-brand-cream border border-gray-200 rounded-lg p-5"
-              >
-                <StarRating rating={r.rating} size={14} />
-                <p className="mt-3 text-sm text-gray-700">&ldquo;{r.quote}&rdquo;</p>
-                <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-900">{r.name}</span>
-                  <span className="font-mono text-xs text-gray-500">{r.dish}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Reviews — real ones, styled as the same ticket language as the hero */}
+        {hasReviews && (
+          <section className="max-w-6xl mx-auto px-4 py-16">
+            <Reveal>
+              <h2 className="font-display text-2xl text-gray-900 mb-8">
+                What the neighborhood's saying
+              </h2>
+            </Reveal>
+            <div className="grid sm:grid-cols-3 gap-6">
+              {reviews!.map((r, i) => {
+                const dishName = r.tbl_order?.tbl_order_items?.[0]?.tbl_dish?.dsh_name
+                const reviewerName = r.tbl_customer?.tbl_users?.usr_full_name ?? 'A customer'
+                return (
+                  <Reveal key={i} delay={i * 120}>
+                    <div className="bg-brand-cream border border-gray-200 rounded-lg p-5 hover:-rotate-1 hover:scale-[1.02] transition-transform duration-200">
+                      <StarRating rating={r.rv_rating} size={14} />
+                      <p className="mt-3 text-sm text-gray-700">&ldquo;{r.rv_comment}&rdquo;</p>
+                      <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900">{reviewerName}</span>
+                        {dishName && (
+                          <span className="font-mono text-xs text-gray-500">{dishName}</span>
+                        )}
+                      </div>
+                    </div>
+                  </Reveal>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Chef recruitment band */}
-        <section className="bg-brand-green">
-          <div className="max-w-6xl mx-auto px-4 py-14 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div>
-              <h2 className="font-display text-2xl text-white">
-                Good at what you cook? Get paid for it.
-              </h2>
-              <p className="text-white/70 mt-2 max-w-md">
-                Set your own menu, your own hours, your own prices. We handle
-                orders and delivery.
-              </p>
+        <Reveal>
+          <section className="bg-brand-green">
+            <div className="max-w-6xl mx-auto px-4 py-14 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div>
+                <h2 className="font-display text-2xl text-white">
+                  Good at what you cook? Get paid for it.
+                </h2>
+                <p className="text-white/70 mt-2 max-w-md">
+                  Set your own menu, your own hours, your own prices. We handle
+                  orders and delivery.
+                </p>
+              </div>
+              <Link href="/register/chef">
+                <Button size="lg" className="bg-brand-gold hover:bg-brand-gold/90 shrink-0">
+                  Start cooking
+                </Button>
+              </Link>
             </div>
-            <Link href="/register/chef">
-              <Button size="lg" className="bg-brand-gold hover:bg-brand-gold/90 shrink-0">
-                Start cooking
-              </Button>
-            </Link>
-          </div>
-        </section>
+          </section>
+        </Reveal>
       </main>
 
       <Footer />

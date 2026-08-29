@@ -5,12 +5,18 @@ import { useRouter } from 'next/navigation'
 import { useCart } from '@/components/customer/CartProvider'
 import { Button } from '@/components/shared/Button'
 import { formatCurrency } from '@/lib/utils'
-import { activeDeliveryFeeStrategy } from '@/lib/strategies/deliveryFee'
+import { activeDeliveryFeeStrategy, FALLBACK_DISTANCE_KM } from '@/lib/strategies/deliveryFee'
 import { placeOrder, type PlaceOrderState } from '@/lib/actions/order'
 
 type PaymentMethod = { pm_id: number; pm_name: string }
 
-export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod[] }) {
+export function CheckoutForm({
+  paymentMethods,
+  defaultAddress,
+}: {
+  paymentMethods: PaymentMethod[]
+  defaultAddress?: string
+}) {
   const { items, subtotal } = useCart()
   const router = useRouter()
   const [state, formAction, isPending] = useActionState<PlaceOrderState, FormData>(
@@ -18,7 +24,11 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
     undefined
   )
 
-  const deliveryFee = activeDeliveryFeeStrategy({ subtotal, distanceKm: 3 })
+  // This is a pre-submission ESTIMATE using a placeholder distance — the
+  // actual fee charged is calculated server-side in placeOrder using the
+  // real geocoded distance between the chef and this delivery address,
+  // and may differ slightly from what's shown here.
+  const deliveryFee = activeDeliveryFeeStrategy({ subtotal, distanceKm: FALLBACK_DISTANCE_KM })
   const total = subtotal + deliveryFee
 
   useEffect(() => {
@@ -38,6 +48,7 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
           name="deliveryAddress"
           required
           rows={3}
+          defaultValue={defaultAddress}
           className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
         />
       </div>
@@ -67,9 +78,12 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
           <span className="font-mono">{formatCurrency(subtotal)}</span>
         </div>
         <div className="flex justify-between text-gray-600">
-          <span>Delivery fee</span>
+          <span>Delivery fee (estimated)</span>
           <span className="font-mono">{formatCurrency(deliveryFee)}</span>
         </div>
+        <p className="text-xs text-gray-400">
+          Final delivery fee is based on your actual address and may differ slightly.
+        </p>
         <div className="flex justify-between text-gray-900 font-medium text-base pt-1">
           <span>Total</span>
           <span className="font-mono text-brand-green">{formatCurrency(total)}</span>

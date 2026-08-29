@@ -8,7 +8,7 @@ export function ChefDishCard({ dish }: { dish: Dish }) {
   return (
     <Link
       href={`/chef/dishes/${dish.dsh_id}/edit`}
-      className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition"
+      className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:-rotate-1 hover:scale-[1.02] transition-transform duration-200"
     >
       <div className="relative h-32 bg-brand-cream">
         {dish.dsh_image_url ? (

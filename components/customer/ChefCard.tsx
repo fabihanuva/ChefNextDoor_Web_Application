@@ -10,7 +10,7 @@ export function ChefCard({ chef }: { chef: Chef }) {
   return (
     <Link
       href={`/chefs/${chef.chf_id}`}
-      className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition"
+      className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:-rotate-1 hover:scale-[1.02] transition-transform duration-200"
     >
       <div className="relative h-40 bg-brand-cream">
         {avatar ? (

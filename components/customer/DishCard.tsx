@@ -38,7 +38,7 @@ export function DishCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:-rotate-1 hover:scale-[1.02] transition-transform duration-200">
       <div className="relative h-36 bg-brand-cream">
         {dish.dsh_image_url ? (
           <Image src={dish.dsh_image_url} alt={dish.dsh_name} fill className="object-cover" />
