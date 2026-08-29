@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Button } from '@/components/shared/Button'
 import { SupportContentRow } from '@/components/admin/SupportContentRow'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 export default async function AdminSupportContentPage() {
   const supabase = createAdminClient()
@@ -23,7 +24,15 @@ export default async function AdminSupportContentPage() {
         {content?.map((c) => (
           <SupportContentRow key={c.sc_id} content={c} />
         ))}
-        {content?.length === 0 && <p className="text-gray-500">No support articles yet.</p>}
+        {content?.length === 0 && (
+          <EmptyState
+            emoji="📄"
+            title="No support articles yet"
+            message="Add FAQs or help articles for customers and chefs."
+            actionLabel="Add article"
+            actionHref="/admin/support-content/new"
+          />
+        )}
       </div>
     </div>
   )
