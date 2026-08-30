@@ -1,71 +1,194 @@
 # ChefNextDoor
 
-A home-cooked food delivery platform connecting customers with local home
-chefs. Three roles: **Customers** (browse, order, review), **Chefs** (list
-dishes, manage orders, earn revenue), and **Admins** (standalone platform
-management — never linked to regular user auth).
+ChefNextDoor is a home-cooked food delivery platform connecting customers
+with local home chefs. Customers browse chefs and dishes, order, track
+delivery live, and leave reviews. Chefs manage their menu, fulfill orders,
+and track earnings. Admins run the platform from a standalone panel —
+approving chefs, managing users, and reporting on revenue.
 
-Originally built as a PHP 8 / MySQL MVC application, then rewritten in
-Next.js (App Router) + Supabase (Postgres, Auth, Storage, Realtime, Edge
-Functions).
+Originally built as a PHP 8 / MySQL MVC application (submission-ready v1,
+kept on a separate branch), then rewritten as a Next.js + Supabase
+full-stack app — the version in this repo.
 
-## Tech stack
+## Features
 
-- **Frontend**: Next.js (App Router), Tailwind CSS v4, React Hook Form + Zod
-- **Backend**: Supabase — Postgres, Auth, Row Level Security, Storage,
-  Realtime, Edge Functions
-- **Email**: Resend
-- **Testing**: Jest, ~96% statement coverage across 148 tests
+### Customer
+- Registration and login (Supabase Auth, email/password)
+- Browse verified chefs and search dishes
+- Add to cart (single-chef cart, enforced), checkout, real distance-based
+  delivery fee (geocoded)
+- Live order tracking (Supabase Realtime — no polling, no refresh)
+- Leave a star rating + review on delivered orders, feeding the chef's
+  average rating
+- Favorite individual dishes
+- Profile: photo upload, saved default delivery address, order history
 
-## Setup
+### Chef
+- Registration flow separate from customer signup; account starts
+  `pending` until admin-approved
+- Dashboard: dish grid, active order count, net earnings after platform
+  fee, rating
+- Dish CRUD with photo upload (Supabase Storage)
+- Incoming order queue with one-tap status progression
+  (confirmed → preparing → out for delivery → delivered)
+- Earnings breakdown: gross sales, platform fee deducted, net take-home
+- Profile: photo, bio, cuisine type, kitchen address (geocoded for
+  delivery-fee calculation)
 
-1. `npm install`
-2. Copy `.env.local.example` to `.env.local` and fill in your Supabase
-   project URL, publishable key, and secret key
-3. Run the schema in `chefnextdoor_schema.sql` via the Supabase SQL Editor,
-   followed by each phase's RLS policy file in order
-4. `npm run dev`
+### Admin
+- Standalone authentication — **not** a role on the regular user table;
+  own login (`/admin/login`), own credentials table, verified server-side
+  on every admin action independent of Supabase Auth
+- Platform KPIs: customers, chefs, pending approvals, total orders, GMV,
+  platform revenue
+- Approve / reject / suspend chef accounts (each action sends an email
+  notification)
+- Suspend / reactivate customer accounts
+- Delivery partner CRUD
+- Support content CRUD
+- Revenue reporting: GMV vs. platform fee vs. chef payouts, by month
 
-Optionally run `node -r dotenv/config scripts/seed.mjs
-dotenv_config_path=.env.local` to populate demo chefs, dishes, and orders.
+## Tech Stack
 
----
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16 (App Router), React 19, TypeScript |
+| Styling | Tailwind CSS v4 |
+| Backend | Supabase — PostgreSQL, Auth, Row Level Security, Storage, Realtime, Edge Functions |
+| Email | Resend |
+| Geocoding | OpenStreetMap Nominatim (free, no API key) |
+| Testing | Jest |
+| Deployment target | Vercel (frontend) + Supabase (managed backend) |
 
-## Design patterns
+## Project Structure
 
-Four patterns were required by the course brief. Each is implemented using
-whatever mechanism is idiomatic to this stack (TypeScript functions and
-Postgres/Supabase primitives) rather than a direct class-for-class port of
-the original PHP OOP version — the intent of each pattern is preserved, the
-mechanism isn't.
+```
+ChefNextDoor_Web_Application/
+├── frontend/                Next.js app (TypeScript)
+│   ├── app/
+│   │   ├── (marketing)/     public landing page + personalized logged-in home
+│   │   ├── (auth)/          login, registration (customer + chef)
+│   │   ├── (customer)/      browse, cart, checkout, orders, favorites, profile
+│   │   ├── chef/            dashboard, dishes, orders, earnings, profile
+│   │   ├── admin/           standalone admin panel
+│   │   └── api/search/      dish search route handler
+│   ├── components/
+│   │   ├── shared/          Button, Navbar, EmptyState, Reveal, etc.
+│   │   ├── customer/ chef/ admin/   role-specific components
+│   ├── lib/
+│   │   ├── actions/         Server Actions, grouped by domain
+│   │   ├── strategies/      Strategy pattern (delivery fee)
+│   │   ├── supabase/        Singleton client wrappers (browser/server/admin)
+│   │   └── email/           Facade (Resend)
+│   ├── hooks/                useRealtimeOrder (Observer, client side)
+│   ├── tests/                Jest test suite
+│   └── public/
+└── supabase/
+    ├── migrations/           full schema + every RLS policy, numbered in order
+    └── functions/            Edge Functions (order-status email notifications)
+```
 
-| Pattern | Where | Why this pattern, not the obvious alternative |
+## Entity-Relationship Diagram
+
+Full ERD: [`docs/ChefNextDoorERD.pdf`](./docs/ChefNextDoorERD.pdf)
+
+## Database Schema
+
+12 tables, 4 enums, PostgreSQL (Supabase). Every table and every RLS
+policy — across auth, customer flow, chef flow, reviews, and admin — is
+version-controlled in [`supabase/migrations/`](./supabase/migrations),
+numbered in the order they should run on a fresh project. See
+[`supabase/migrations/README.md`](./supabase/migrations/README.md) for
+the full breakdown.
+
+## Design Patterns
+
+Four patterns required by the course brief — Singleton, Strategy,
+Observer, Facade — implemented using whatever mechanism is idiomatic to
+this stack (TypeScript functions and Postgres/Supabase primitives) rather
+than a direct class-for-class port of the original PHP OOP version.
+
+Full write-up with the "why this pattern, not the obvious alternative"
+reasoning for each: [`DESIGN_PATTERNS.md`](./DESIGN_PATTERNS.md)
+
+## Testing
+
+Jest test suite covering Server Actions and core business logic
+(delivery fee calculation, platform fee split, auth flows). Located in
+[`frontend/tests/`](./frontend/tests).
+
+```bash
+cd frontend
+npm test              # run once
+npm run test:coverage # with coverage report, if configured
+```
+
+> Note: test count/coverage numbers should be re-verified against the
+> current suite before citing a specific figure — several features
+> (platform fee, geocoding, reviews) were added after the last full
+> coverage run.
+
+## Screenshots
+
+<!--
+  Fill in with actual screenshots before submission, matching this pattern:
+  | Public landing | Personalized home (logged in) |
+  |---|---|
+  | ![Landing](./docs/screenshots/landing.png) | ![Home](./docs/screenshots/home.png) |
+-->
+
+| Landing | Browse | Chef profile |
 |---|---|---|
-| **Singleton** | `lib/supabase/client.ts`, `server.ts`, `admin.ts` | One controlled construction point per context (browser / server / admin) instead of instantiating a Supabase client wherever needed. Getting the client config wrong (wrong key, wrong cookie strategy) is a security bug, not a style issue — centralizing it means that mistake can only be made once, in one file. `admin.ts` in particular is the *only* place the service-role secret is ever used, guarded by `server-only`. |
-| **Strategy** | `lib/strategies/deliveryFee.ts` | Checkout calls `activeDeliveryFeeStrategy()` without knowing how the fee is calculated. Delivery pricing is a business rule that changes independently of the checkout flow (promotions, distance tiers, partner rates) — isolating it means checkout's code never changes when the pricing *policy* changes. |
-| **Observer** | `hooks/useRealtimeOrder.ts` (subscriber) + `lib/actions/chefOrder.ts` (publisher), and independently a Database Webhook on `tbl_order` → `supabase/functions/send-order-email` (a second subscriber) | Two observers watch the same subject (an order's status) with zero coupling between them. The chef's Server Action that updates `ord_status` has no idea the customer's browser is watching live, and no idea an email is about to fire. New subscribers (an admin alert, an SMS ping) can be added later without touching the code that changes the order. |
-| **Facade** | `lib/email/mailer.ts` | Every call site sends email through `sendEmail()` or a named helper, never touching the Resend SDK directly. Swapping providers later means editing one file, not every call site. |
+| _screenshot_ | _screenshot_ | _screenshot_ |
 
-Full write-up with more detail on each pattern's trade-offs: see
-[`DESIGN_PATTERNS.md`](./DESIGN_PATTERNS.md).
+| Customer checkout | Order tracking (live) | Chef dashboard |
+|---|---|---|
+| _screenshot_ | _screenshot_ | _screenshot_ |
 
-## Project structure
+| Chef orders queue | Admin dashboard | Admin chef approval |
+|---|---|---|
+| _screenshot_ | _screenshot_ | _screenshot_ |
 
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- A free [Supabase](https://supabase.com) project
+- A free [Resend](https://resend.com) account (for email notifications)
+
+### Database
+1. Open your Supabase project → SQL Editor
+2. Run every file in `supabase/migrations/` **in numeric order** (001 → 010)
+3. Some steps need a manual dashboard action first — noted inline in the
+   relevant migration file (creating Storage buckets, setting up the
+   order-status Database Webhook)
+
+### Frontend
+```bash
+cd frontend
+npm install
+cp .env.local.example .env.local
+# fill in your Supabase URL/keys and Resend API key in .env.local
+npm run dev
 ```
-app/
-  (marketing)/     — landing page
-  (auth)/          — login, register (customer + chef)
-  (customer)/      — browse, cart, checkout, orders, favorites, profile
-  chef/            — dashboard, dishes, orders, earnings, profile
-  admin/           — standalone admin panel (dashboard, chefs, users, ...)
-  api/search/      — dish search route handler
-lib/
-  actions/         — Server Actions, grouped by domain
-  strategies/       — Strategy pattern (delivery fee)
-  supabase/        — Singleton client wrappers
-  email/           — Facade (mailer)
-supabase/functions/ — Edge Functions (order status emails)
-components/
-  shared/          — Button, Badge, Navbar, EmptyState, etc.
-  customer/ chef/ admin/ — role-specific components
+Runs on `http://localhost:3000`.
+
+### Seed demo data (optional)
+```bash
+cd frontend
+node -r dotenv/config scripts/seed.mjs dotenv_config_path=.env.local
 ```
+Creates 5 demo chefs, 3 demo customers, dishes, delivered orders, and
+reviews — all logins use the password printed at the end of the script.
+
+## Architecture note: no separate REST API layer
+
+Unlike a typical client/server split (a Spring Boot backend serving a
+REST API, for example), this project uses Next.js **Server Actions** as
+its backend — functions in `frontend/lib/actions/` that run only on the
+server, callable directly from React components without a manual
+fetch/endpoint layer. The only conventional API route is
+`app/api/search/route.ts` (dish search). Direct table reads (chef
+listings, dish browsing) go straight from Server Components to Supabase,
+protected by Row Level Security rather than by an API authorization
+layer — the database itself enforces who can read/write what.
