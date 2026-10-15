@@ -2,9 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/types/database.types'
 import { getChefId, getChefOrderIds } from './chef-helpers'
 
-const VALID_STATUSES = [
+type OrderStatus = Database['public']['Enums']['order_status_enum']
+
+const VALID_STATUSES: readonly OrderStatus[] = [
   'pending',
   'confirmed',
   'preparing',
@@ -19,7 +22,7 @@ const VALID_STATUSES = [
  * this is the other half of your Observer-pattern replacement.
  */
 export async function updateOrderStatus(orderId: number, status: string) {
-  if (!VALID_STATUSES.includes(status)) {
+  if (!VALID_STATUSES.includes(status as OrderStatus)) {
     return { error: 'Invalid status' }
   }
 
@@ -43,7 +46,7 @@ export async function updateOrderStatus(orderId: number, status: string) {
 
   const { error } = await supabase
     .from('tbl_order')
-    .update({ ord_status: status })
+    .update({ ord_status: status as OrderStatus })
     .eq('ord_id', orderId)
 
   if (error) return { error: error.message }

@@ -9,7 +9,9 @@ export default async function EditDishPage({
 }: {
   params: Promise<{ dishId: string }>
 }) {
-  const { dishId } = await params
+  const { dishId: dishIdParam } = await params
+  const dishId = Number(dishIdParam)
+  if (!Number.isInteger(dishId)) notFound()
   const supabase = await createClient()
   const {
     data: { user },

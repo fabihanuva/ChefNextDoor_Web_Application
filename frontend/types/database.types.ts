@@ -54,6 +54,8 @@ export type Database = {
           chf_cuisine_type: string | null
           chf_id: number
           chf_kitchen_address: string
+          chf_latitude: number | null
+          chf_longitude: number | null
           chf_rating_avg: number
           chf_user_id: string
           chf_verification_status: Database["public"]["Enums"]["chef_verification_enum"]
@@ -64,6 +66,8 @@ export type Database = {
           chf_cuisine_type?: string | null
           chf_id?: number
           chf_kitchen_address: string
+          chf_latitude?: number | null
+          chf_longitude?: number | null
           chf_rating_avg?: number
           chf_user_id: string
           chf_verification_status?: Database["public"]["Enums"]["chef_verification_enum"]
@@ -74,6 +78,8 @@ export type Database = {
           chf_cuisine_type?: string | null
           chf_id?: number
           chf_kitchen_address?: string
+          chf_latitude?: number | null
+          chf_longitude?: number | null
           chf_rating_avg?: number
           chf_user_id?: string
           chf_verification_status?: Database["public"]["Enums"]["chef_verification_enum"]
@@ -495,7 +501,7 @@ export type Database = {
     }
     Enums: {
       admin_access_level_enum: "super_admin" | "moderator" | "support"
-      chef_verification_enum: "pending" | "verified" | "rejected"
+      chef_verification_enum: "pending" | "verified" | "rejected" | "suspended"
       delivery_status_enum: "available" | "busy" | "offline"
       order_status_enum:
         | "pending"
@@ -632,7 +638,7 @@ export const Constants = {
   public: {
     Enums: {
       admin_access_level_enum: ["super_admin", "moderator", "support"],
-      chef_verification_enum: ["pending", "verified", "rejected"],
+      chef_verification_enum: ["pending", "verified", "rejected", "suspended"],
       delivery_status_enum: ["available", "busy", "offline"],
       order_status_enum: [
         "pending",

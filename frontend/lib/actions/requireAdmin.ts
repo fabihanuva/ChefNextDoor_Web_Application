@@ -15,7 +15,7 @@ export async function requireAdmin() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return null
+  if (!user || !user.email) return null
 
   const { data: admin } = await supabase
     .from('tbl_admin')

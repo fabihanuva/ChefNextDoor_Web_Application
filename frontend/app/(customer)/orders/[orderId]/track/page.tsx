@@ -10,7 +10,9 @@ export default async function OrderTrackPage({
 }: {
   params: Promise<{ orderId: string }>
 }) {
-  const { orderId } = await params
+  const { orderId: orderIdParam } = await params
+  const orderId = Number(orderIdParam)
+  if (!Number.isInteger(orderId)) notFound()
   const supabase = await createClient()
 
   const { data: order } = await supabase

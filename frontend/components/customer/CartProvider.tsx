@@ -7,10 +7,10 @@ const CART_STORAGE_KEY = 'chefnextdoor_cart'
 
 type CartContextValue = {
   items: CartItem[]
-  chefId: string | null
+  chefId: number | null
   addItem: (item: CartItem) => { ok: boolean; error?: string }
-  removeItem: (dishId: string) => void
-  updateQuantity: (dishId: string, quantity: number) => void
+  removeItem: (dishId: number) => void
+  updateQuantity: (dishId: number, quantity: number) => void
   clearCart: () => void
   subtotal: number
 }
@@ -72,11 +72,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return { ok: true }
   }
 
-  function removeItem(dishId: string) {
+  function removeItem(dishId: number) {
     setItems((prev) => prev.filter((i) => i.dishId !== dishId))
   }
 
-  function updateQuantity(dishId: string, quantity: number) {
+  function updateQuantity(dishId: number, quantity: number) {
     if (quantity <= 0) {
       removeItem(dishId)
       return

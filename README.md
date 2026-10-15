@@ -36,8 +36,10 @@ full-stack app — the version in this repo.
   delivery-fee calculation)
 
 ### Admin
-- Standalone authentication — **not** a role on the regular user table;
-  own login (`/admin/login`), own credentials table, verified server-side
+- Standalone entity — **not** a role on the regular user table; own login
+  (`/admin/login`), verified server-side. Sign-in uses Supabase Auth, then
+  confirms the email exists in `tbl_admin` (the admin needs a confirmed Auth
+  user with the same email as its `tbl_admin` row)
   on every admin action independent of Supabase Auth
 - Platform KPIs: customers, chefs, pending approvals, total orders, GMV,
   platform revenue

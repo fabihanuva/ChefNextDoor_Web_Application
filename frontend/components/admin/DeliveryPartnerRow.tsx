@@ -22,7 +22,9 @@ export function DeliveryPartnerRow({
       <button
         onClick={() => {
           if (confirm(`Remove ${partner.dp_full_name}?`)) {
-            startTransition(() => deleteDeliveryPartner(partner.dp_id))
+            startTransition(async () => {
+              await deleteDeliveryPartner(partner.dp_id)
+            })
           }
         }}
         disabled={isPending}

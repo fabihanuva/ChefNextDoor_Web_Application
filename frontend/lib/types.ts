@@ -17,7 +17,7 @@ export type Chef = {
   chf_kitchen_address: string
   chf_cuisine_type: string | null
   chf_rating_avg: number
-  chf_verification_status: 'pending' | 'verified' | 'rejected'
+  chf_verification_status: 'pending' | 'verified' | 'rejected' | 'suspended'
   tbl_users: ChefUserInfo | null
 }
 

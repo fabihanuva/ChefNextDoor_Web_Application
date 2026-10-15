@@ -40,7 +40,9 @@ export function ChefRow({ chef }: { chef: ChefRowData }) {
             <Button
               size="sm"
               disabled={isPending}
-              onClick={() => startTransition(() => approveChef(chef.chf_id))}
+              onClick={() => startTransition(async () => {
+                await approveChef(chef.chf_id)
+              })}
             >
               Approve
             </Button>
@@ -48,7 +50,9 @@ export function ChefRow({ chef }: { chef: ChefRowData }) {
               size="sm"
               variant="danger"
               disabled={isPending}
-              onClick={() => startTransition(() => rejectChef(chef.chf_id))}
+              onClick={() => startTransition(async () => {
+                await rejectChef(chef.chf_id)
+              })}
             >
               Reject
             </Button>
@@ -60,7 +64,9 @@ export function ChefRow({ chef }: { chef: ChefRowData }) {
             size="sm"
             variant="danger"
             disabled={isPending}
-            onClick={() => startTransition(() => suspendChef(chef.chf_id))}
+            onClick={() => startTransition(async () => {
+                await suspendChef(chef.chf_id)
+              })}
           >
             Suspend
           </Button>

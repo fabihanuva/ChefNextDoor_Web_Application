@@ -20,7 +20,9 @@ export function SupportContentRow({
       <button
         onClick={() => {
           if (confirm(`Delete "${content.sc_title}"?`)) {
-            startTransition(() => deleteSupportContent(content.sc_id))
+            startTransition(async () => {
+              await deleteSupportContent(content.sc_id)
+            })
           }
         }}
         disabled={isPending}

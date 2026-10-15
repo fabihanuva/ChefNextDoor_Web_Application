@@ -10,7 +10,9 @@ export default async function ChefProfilePage({
 }: {
   params: Promise<{ chefId: string }>
 }) {
-  const { chefId } = await params
+  const { chefId: chefIdParam } = await params
+  const chefId = Number(chefIdParam)
+  if (!Number.isInteger(chefId)) notFound()
   const supabase = await createClient()
 
   const { data: chef } = await supabase

@@ -17,15 +17,15 @@ const customJestConfig: Config = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
     '<rootDir>/chefnextdoor/',
-    '<rootDir>/__tests__/helpers/',
-    '<rootDir>/__tests__/mocks/',
+    '<rootDir>/tests/helpers/',
+    '<rootDir>/tests/mocks/',
   ],
   modulePathIgnorePatterns: ['<rootDir>/chefnextdoor/'],
   moduleNameMapper: {
     // The real 'server-only' package throws unless bundled with Next's
     // "react-server" export condition, which plain Jest doesn't set.
     // Swap it for a no-op so server actions can be imported in tests.
-    '^server-only$': '<rootDir>/__tests__/mocks/server-only.js',
+    '^server-only$': '<rootDir>/tests/mocks/server-only.js',
     '^@/(.*)$': '<rootDir>/$1',
   },
   collectCoverage: true,

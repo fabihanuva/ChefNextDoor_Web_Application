@@ -43,7 +43,7 @@ export async function adminSignIn(
   const { data: admin } = await supabase
     .from('tbl_admin')
     .select('adm_id')
-    .eq('adm_email', data.user.email)
+    .eq('adm_email', data.user.email ?? '')
     .single()
 
   if (!admin) {

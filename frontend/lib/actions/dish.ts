@@ -85,7 +85,7 @@ export async function createDish(
 }
 
 export async function updateDish(
-  dishId: string,
+  dishId: number,
   _prevState: DishState,
   formData: FormData
 ): Promise<DishState> {

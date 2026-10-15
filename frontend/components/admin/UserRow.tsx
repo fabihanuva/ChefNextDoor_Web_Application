@@ -29,9 +29,9 @@ export function UserRow({
           variant={isSuspended ? 'primary' : 'danger'}
           disabled={isPending}
           onClick={() =>
-            startTransition(() =>
-              isSuspended ? reactivateUser(user.usr_id) : suspendUser(user.usr_id)
-            )
+            startTransition(async () => {
+              await (isSuspended ? reactivateUser(user.usr_id) : suspendUser(user.usr_id))
+            })
           }
         >
           {isSuspended ? 'Reactivate' : 'Suspend'}

@@ -60,6 +60,21 @@ export async function updateSession(request: NextRequest) {
   if (user && (isCustomerRoute || isChefRoute)) {
     const role = user.user_metadata?.role as 'customer' | 'chef' | undefined
 
+    // Accounts with no customer/chef role (e.g. the admin) must not
+    // bounce between /browse and /chef/dashboard forever.
+    if (role !== 'customer' && role !== 'chef') {
+      const { data: admin } = await supabase
+        .from('tbl_admin')
+        .select('adm_id')
+        .eq('adm_email', user.email)
+        .single()
+
+      const url = request.nextUrl.clone()
+      url.pathname = admin ? '/admin/dashboard' : '/login'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+
     if (isChefRoute && role !== 'chef') {
       const url = request.nextUrl.clone()
       url.pathname = '/browse'
